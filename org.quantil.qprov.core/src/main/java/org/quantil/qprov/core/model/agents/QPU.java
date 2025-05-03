@@ -57,6 +57,8 @@ public class QPU extends org.openprovenance.prov.xml.Agent implements ProvExtens
 
     private int queueSize;
 
+    private boolean isConditional;
+
     private boolean isSimulator;
 
     @OneToMany(mappedBy = "qpu",
@@ -245,6 +247,9 @@ public class QPU extends org.openprovenance.prov.xml.Agent implements ProvExtens
         agent.getOther().add(Utils
                 .createOtherElement(Constants.QPROV_TYPE_QPU_SIMULATOR, String.valueOf(isSimulator),
                         Constants.QPROV_TYPE_QPU_SIMULATOR + Constants.QPROV_TYPE_SUFFIX));
+        agent.getOther().add(Utils
+                        .createOtherElement(Constants.QPROV_TYPE_CONDITIONAL, String.valueOf(isConditional),
+                                Constants.QPROV_TYPE_CONDITIONAL + Constants.QPROV_TYPE_SUFFIX));
 
         // add data about contained qubits
         final Set<Statement> statements = qubits.stream().flatMap(qubit -> qubit.toStandardCompliantProv(qubit).stream()).collect(Collectors.toSet());

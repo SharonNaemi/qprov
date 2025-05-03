@@ -76,15 +76,15 @@ public class IBMQProvider implements IProvider {
     private String ibmqToken;
 
     public IBMQProvider(ProviderRepository providerRepository, QPURepository qpuRepository,
-                        QubitRepository qubitRepository,
-                        QubitCharacteristicsRepository qubitCharacteristicsRepository,
-                        GateCharacteristicsRepository gateCharacteristicsRepository,
-                        GateRepository gateRepository,
-                        IBMQCircuitExecutor ibmqCircuitExecutor,
-                        @Value("${qprov.ibmq.execute-calibration}") Boolean executeCalibrationCircuits,
-                        @Value("${qprov.ibmq.auto-collect}") Boolean autoCollect,
-                        @Value("${qprov.ibmq.auto-collect-interval}") Integer autoCollectInterval,
-                        @Value("${qprov.ibmq.auto-collect-interval-circuits}") Integer autoCollectIntervalCircuits) {
+            QubitRepository qubitRepository,
+            QubitCharacteristicsRepository qubitCharacteristicsRepository,
+            GateCharacteristicsRepository gateCharacteristicsRepository,
+            GateRepository gateRepository,
+            IBMQCircuitExecutor ibmqCircuitExecutor,
+            @Value("${qprov.ibmq.execute-calibration}") Boolean executeCalibrationCircuits,
+            @Value("${qprov.ibmq.auto-collect}") Boolean autoCollect,
+            @Value("${qprov.ibmq.auto-collect-interval}") Integer autoCollectInterval,
+            @Value("${qprov.ibmq.auto-collect-interval-circuits}") Integer autoCollectIntervalCircuits) {
         this.providerRepository = providerRepository;
         this.qpuRepository = qpuRepository;
         this.qubitRepository = qubitRepository;
@@ -95,7 +95,7 @@ public class IBMQProvider implements IProvider {
         this.ibmqCircuitExecutor = ibmqCircuitExecutor;
 
         this.defaultClient = Configuration.getDefaultApiClient();
-        this.defaultClient.setBasePath("https://api.quantum-computing.ibm.com/v2");
+        this.defaultClient.setBasePath("https://api.quantum-computing.ibm.com/");
 
         logger.debug("Started IBMQ Provider with auto collect: {}", autoCollect);
 
@@ -107,19 +107,24 @@ public class IBMQProvider implements IProvider {
                     Constants.DEFAULT_COLLECTION_STARTUP_TIME, autoCollectInterval, TimeUnit.MINUTES);
 
             if (executeCalibrationCircuits) {
-                logger.debug("Auto collection by circuit execution activated with interval: {} min", autoCollectIntervalCircuits);
+                logger.debug("Auto collection by circuit execution activated with interval: {} min",
+                        autoCollectIntervalCircuits);
 
-                // circuit execution is delayed as it relies on the set of identified QPUs from the API collection
+                // circuit execution is delayed as it relies on the set of identified QPUs from
+                // the API collection
                 scheduler.scheduleAtFixedRate(new IBMQRunnableCircuits(this),
-                        Constants.DEFAULT_COLLECTION_STARTUP_TIME_CIRCUITS, autoCollectIntervalCircuits, TimeUnit.MINUTES);
+                        Constants.DEFAULT_COLLECTION_STARTUP_TIME_CIRCUITS, autoCollectIntervalCircuits,
+                        TimeUnit.MINUTES);
             }
         }
     }
 
     /**
-     * Authenticate at IBMQ using the token provided through the environment variables
+     * Authenticate at IBMQ using the token provided through the environment
+     * variables
      *
-     * @return <code>true</code> if authentication is successful, <code>false</code> otherwise
+     * @return <code>true</code> if authentication is successful, <code>false</code>
+     *         otherwise
      */
     private boolean authenticate() {
 
@@ -143,6 +148,7 @@ public class IBMQProvider implements IProvider {
             // configure "API Token" authorization with obtained accessToken
             final ApiKeyAuth apiKeyAuth = (ApiKeyAuth) this.defaultClient.getAuthentication("API Token");
             apiKeyAuth.setApiKey(accessToken.getId());
+            System.out.println(accessToken.getId());
             return true;
         } catch (ApiException e) {
             logger.error("Error while authenticating at IBMQ: {}", e.getLocalizedMessage());
@@ -151,7 +157,8 @@ public class IBMQProvider implements IProvider {
     }
 
     /**
-     * Check if IBMQ provider already exists in the database and return it or otherwise create it
+     * Check if IBMQ provider already exists in the database and return it or
+     * otherwise create it
      *
      * @return the retrieved or created IBMQ provider object
      */
@@ -162,7 +169,8 @@ public class IBMQProvider implements IProvider {
             return providerOptional.get();
         }
 
-        // create a new Provider object representing the IBMQ provider that is handled by this collector
+        // create a new Provider object representing the IBMQ provider that is handled
+        // by this collector
         final Provider provider = new Provider();
         provider.setName(IBMQConstants.PROVIDER_ID);
         try {
@@ -176,7 +184,8 @@ public class IBMQProvider implements IProvider {
     }
 
     /**
-     * Add the given device as a QPU to the database or update the information of the already stored QPU object
+     * Add the given device as a QPU to the database or update the information of
+     * the already stored QPU object
      *
      * @param provider the provider the QPU belongs to
      * @param device   the IBMQ device to store or update the QPu object for
@@ -231,7 +240,8 @@ public class IBMQProvider implements IProvider {
             }
             qpu.getQubits().addAll(qubits.values());
         } else {
-            // for simulators and QPUs with one qubit no coupling map exists, therefore just add the qubits
+            // for simulators and QPUs with one qubit no coupling map exists, therefore just
+            // add the qubits
             for (int i = 0; i < device.getnQubits().intValue(); i++) {
                 Qubit qubit = new Qubit();
                 qubit.setQpu(qpu);
@@ -263,11 +273,12 @@ public class IBMQProvider implements IProvider {
     public void addGateFromDevice(org.quantil.qprov.ibmq.client.model.Gate ibmGate, QPU qpu) {
 
         // remove duplicates in coupling map
-        final List<List<BigDecimal>> distinctList =
-                ibmGate.getCouplingMap().stream().map(listToSort -> listToSort.stream().sorted().collect(Collectors.toList())).distinct()
-                        .collect(Collectors.toList());
+        final List<List<BigDecimal>> distinctList = ibmGate.getCouplingMap().stream()
+                .map(listToSort -> listToSort.stream().sorted().collect(Collectors.toList())).distinct()
+                .collect(Collectors.toList());
 
-        // each gate is instantiated for each coupling map, as the gate on different qubits has different characteristics
+        // each gate is instantiated for each coupling map, as the gate on different
+        // qubits has different characteristics
         for (List<BigDecimal> coupling : distinctList) {
             Gate gate = new Gate();
             gate.setName(ibmGate.getName());
@@ -289,16 +300,19 @@ public class IBMQProvider implements IProvider {
     }
 
     /**
-     * Update the qubit characteristics of the given QPU with the latest calibration data and add to the database
+     * Update the qubit characteristics of the given QPU with the latest calibration
+     * data and add to the database
      *
      * @param qpu              the QPU to update the qubit characteristics for
      * @param deviceProperties the device properties retrieved from the IBM API
-     * @param calibrationTime  the time of the calibration the given device properties were retrieved from
+     * @param calibrationTime  the time of the calibration the given device
+     *                         properties were retrieved from
      */
     private void updateQubitCharacteristicsOfQPU(QPU qpu, DeviceProperties deviceProperties, Date calibrationTime) {
 
         if (deviceProperties.getQubits().size() != qpu.getQubits().size()) {
-            logger.error("Number of qubits in the device properties ({}) does not equal number of qubits from the QPU ({})!",
+            logger.error(
+                    "Number of qubits in the device properties ({}) does not equal number of qubits from the QPU ({})!",
                     deviceProperties.getQubits().size(), qpu.getQubits().size());
             return;
         }
@@ -315,10 +329,12 @@ public class IBMQProvider implements IProvider {
                 continue;
             }
 
-            // skip update if latest characteristics have the same time stamp then current calibration data
-            final QubitCharacteristics latestCharacteristics =
-                    qubitCharacteristicsRepository.findByQubitOrderByCalibrationTimeDesc(currentQubit).stream().findFirst().orElse(null);
-            if (Objects.nonNull(latestCharacteristics) && !calibrationTime.after(latestCharacteristics.getCalibrationTime())) {
+            // skip update if latest characteristics have the same time stamp then current
+            // calibration data
+            final QubitCharacteristics latestCharacteristics = qubitCharacteristicsRepository
+                    .findByQubitOrderByCalibrationTimeDesc(currentQubit).stream().findFirst().orElse(null);
+            if (Objects.nonNull(latestCharacteristics)
+                    && !calibrationTime.after(latestCharacteristics.getCalibrationTime())) {
                 logger.trace("Stored characteristics are up-to-date. No update needed!");
                 continue;
             }
@@ -328,7 +344,8 @@ public class IBMQProvider implements IProvider {
             qubitCharacteristics.setQubit(currentQubit);
             qubitCharacteristics.setCalibrationTime(calibrationTime);
 
-            // retrieve T1, T2, and readout error - NOTE: T1 and T2 are in micro seconds (us)
+            // retrieve T1, T2, and readout error - NOTE: T1 and T2 are in micro seconds
+            // (us)
             for (Object propertiesOfQubit : propertiesOfQubitList) {
                 final Map<String, String> propertiesMap = IBMQUtility.transformIbmPropertiesToMap(propertiesOfQubit);
 
@@ -353,11 +370,14 @@ public class IBMQProvider implements IProvider {
     }
 
     /**
-     * Update the gate characteristics of the given QPU with the latest calibration data and add to the database
+     * Update the gate characteristics of the given QPU with the latest calibration
+     * data and add to the database
      *
-     * @param qpuId            the Id of the QPU to update the gate characteristics for
+     * @param qpuId            the Id of the QPU to update the gate characteristics
+     *                         for
      * @param deviceProperties the device properties retrieved from the IBM API
-     * @param calibrationTime  the time of the calibration the given device properties were retrieved from
+     * @param calibrationTime  the time of the calibration the given device
+     *                         properties were retrieved from
      */
     private void updateGateCharacteristicsOfQPU(UUID qpuId, DeviceProperties deviceProperties, Date calibrationTime) {
 
@@ -367,26 +387,28 @@ public class IBMQProvider implements IProvider {
             return;
         }
 
-        final List<Gate> gates =
-                qpu.getQubits().stream().flatMap(qubit -> qubit.getSupportedGates().stream()).distinct().collect(Collectors.toList());
+        final List<Gate> gates = qpu.getQubits().stream().flatMap(qubit -> qubit.getSupportedGates().stream())
+                .distinct().collect(Collectors.toList());
         logger.debug("Updating characteristics for {} gates of QPU: {}", gates.size(), qpu.getName());
 
         for (Gate gate : gates) {
 
-            // skip update if latest characteristics have the same time stamp then current calibration data
-            final GateCharacteristics latestCharacteristics =
-                    gateCharacteristicsRepository.findByGateOrderByCalibrationTimeDesc(gate).stream().findFirst().orElse(null);
-            if (Objects.nonNull(latestCharacteristics) && !calibrationTime.after(latestCharacteristics.getCalibrationTime())) {
+            // skip update if latest characteristics have the same time stamp then current
+            // calibration data
+            final GateCharacteristics latestCharacteristics = gateCharacteristicsRepository
+                    .findByGateOrderByCalibrationTimeDesc(gate).stream().findFirst().orElse(null);
+            if (Objects.nonNull(latestCharacteristics)
+                    && !calibrationTime.after(latestCharacteristics.getCalibrationTime())) {
                 logger.trace("Stored gate characteristics are up-to-date. No update needed!");
                 continue;
             }
 
-            // get the DevicePropsGate that belongs to the gate that should be updated with the characteristics
-            final Optional<DevicePropsGate> matchingGateOptional =
-                    deviceProperties.getGates().stream()
-                            .filter(ibmGate -> ibmGate.getGate().equals(gate.getName()))
-                            .filter(ibmGate -> IBMQUtility.operatesOnSameQubits(ibmGate, gate))
-                            .findFirst();
+            // get the DevicePropsGate that belongs to the gate that should be updated with
+            // the characteristics
+            final Optional<DevicePropsGate> matchingGateOptional = deviceProperties.getGates().stream()
+                    .filter(ibmGate -> ibmGate.getGate().equals(gate.getName()))
+                    .filter(ibmGate -> IBMQUtility.operatesOnSameQubits(ibmGate, gate))
+                    .findFirst();
 
             if (matchingGateOptional.isEmpty()) {
                 logger.warn("No properties found for gate {} on QPU: {}", gate.getName(), qpu.getName());
@@ -425,18 +447,22 @@ public class IBMQProvider implements IProvider {
     }
 
     /**
-     * Collect the data about the QPUs from IBMQ and add or update existing database entries
+     * Collect the data about the QPUs from IBMQ and add or update existing database
+     * entries
      *
      * @param provider the provider object to connect the QPU objects to
-     * @return <code>true</code> if collection of QPU data is successful, <code>false</code> otherwise
+     * @return <code>true</code> if collection of QPU data is successful,
+     *         <code>false</code> otherwise
      */
     private boolean collectQPUs(Provider provider) {
 
         try {
             // get all available QPUs
             final GetBackendInformationApi backendInformationApi = new GetBackendInformationApi(this.defaultClient);
+            System.out.println(backendInformationApi);
             final List<Device> devices = backendInformationApi
-                    .getBackendInformationGetProjectDevicesWithVersion(IBMQConstants.IBMQ_DEFAULT_HUB, IBMQConstants.IBMQ_DEFAULT_GROUP,
+                    .getBackendInformationGetProjectDevicesWithVersion(IBMQConstants.IBMQ_DEFAULT_HUB,
+                            IBMQConstants.IBMQ_DEFAULT_GROUP,
                             IBMQConstants.IBMQ_DEFAULT_PROJECT);
 
             // get details for each retrieved QPU
@@ -448,15 +474,28 @@ public class IBMQProvider implements IProvider {
                 final QPU qpu = addQPUToDatabase(provider, device);
 
                 try {
+
                     logger.debug("Getting detailed information for the QPU...");
 
+                    // configuration endpoint does not exist for the old API endpoint
+                    // new API has authorization problems
+                    System.out.println(!device.getBackendName().trim().equals("ibm_sherbrooke"));
+                    if (!device.getBackendName().trim().equals("ibm_sherbrooke") && !device.getBackendName().trim().equals("ibm_brisbane")) {
+                        qpu.setConditional(true);
+                    }
+
+
                     // get current queue size and add to QPU characteristics
-                    final BackendStatus backendStatus = backendInformationApi
-                            .getBackendInformationGetDeviceQueueStatus(IBMQConstants.IBMQ_DEFAULT_HUB, IBMQConstants.IBMQ_DEFAULT_GROUP,
-                                    IBMQConstants.IBMQ_DEFAULT_PROJECT, device.getBackendName());
-                    final BigDecimal queueSize = backendStatus.getLengthQueue();
-                    qpu.setQueueSize(queueSize.intValue());
-                    logger.debug("Current queue size: {}", queueSize);
+                    // final BackendStatus backendStatus = backendInformationApi
+                    // .getBackendInformationGetDeviceQueueStatus(IBMQConstants.IBMQ_DEFAULT_HUB,
+                    // IBMQConstants.IBMQ_DEFAULT_GROUP,
+                    // IBMQConstants.IBMQ_DEFAULT_PROJECT, device.getBackendName());
+                    // final BigDecimal queueSize = backendStatus.getLengthQueue();
+
+                    qpu.setQueueSize(0);
+                    System.out.println(qpu.isConditional());
+                    logger.debug("Current queue size: {}", 0);
+                    qpuRepository.save(qpu);
 
                     // skip simulators in further analysis as they do not provide calibration data
                     if (Objects.isNull(device.getSimulator()) || device.getSimulator()) {
@@ -467,20 +506,24 @@ public class IBMQProvider implements IProvider {
 
                     // retrieve details about qubits, gates, calibration, and queue size
                     final DeviceProperties deviceProperties = backendInformationApi
-                            .getBackendInformationGetDeviceProperties(IBMQConstants.IBMQ_DEFAULT_HUB, IBMQConstants.IBMQ_DEFAULT_GROUP,
+                            .getBackendInformationGetDeviceProperties(IBMQConstants.IBMQ_DEFAULT_HUB,
+                                    IBMQConstants.IBMQ_DEFAULT_GROUP,
                                     IBMQConstants.IBMQ_DEFAULT_PROJECT, device.getBackendName(), null, null);
 
                     // update QPU object with last calibration and update time
-                    final Date lastCalibrated = new Date(deviceProperties.getLastUpdateDate().toInstant().toEpochMilli());
+                    final Date lastCalibrated = new Date(
+                            deviceProperties.getLastUpdateDate().toInstant().toEpochMilli());
                     qpu.setLastCalibrated(lastCalibrated);
                     qpu.setLastUpdated(new Date(System.currentTimeMillis()));
                     qpuRepository.save(qpu);
 
-                    // add new qubit and gate characteristics if a new calibration was done since the last retrieval
+                    // add new qubit and gate characteristics if a new calibration was done since
+                    // the last retrieval
                     updateQubitCharacteristicsOfQPU(qpu, deviceProperties, lastCalibrated);
                     updateGateCharacteristicsOfQPU(qpu.getDatabaseId(), deviceProperties, lastCalibrated);
                 } catch (ApiException e) {
-                    logger.error("Exception while getting details about QPU with name '{}': {}", device.getBackendName(),
+                    logger.error("Exception while getting details about QPU with name '{}': {}",
+                            device.getBackendName(),
                             e.getLocalizedMessage());
                     status = false;
                 }
@@ -504,12 +547,14 @@ public class IBMQProvider implements IProvider {
         logger.debug("Collection by IBMQProvider started...");
 
         if (!authenticate()) {
-            logger.warn("Authentication failed. Aborting retrieval from IBMQProvider. Please check the provided access token!");
+            logger.warn(
+                    "Authentication failed. Aborting retrieval from IBMQProvider. Please check the provided access token!");
             return false;
         }
         logger.debug("Successfully authenticated. Starting retrieval of QPUs...");
 
-        // add the IBMQ provider as object to the database if it was not created in a previous collection and otherwise retrieve it
+        // add the IBMQ provider as object to the database if it was not created in a
+        // previous collection and otherwise retrieve it
         logger.debug("Setting base path for data retrieval: https://api.quantum-computing.ibm.com/api");
         this.defaultClient.setBasePath("https://api.quantum-computing.ibm.com/api");
         final Provider ibmqProvider = addProviderToDatabase();
@@ -523,7 +568,8 @@ public class IBMQProvider implements IProvider {
     public boolean collectThroughCircuits() {
 
         if (!executeCalibrationCircuits) {
-            logger.warn("Execution of calibration circuits deactivated in the properties. Please activate for this functionality!");
+            logger.warn(
+                    "Execution of calibration circuits deactivated in the properties. Please activate for this functionality!");
             return false;
         }
 

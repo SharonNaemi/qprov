@@ -118,6 +118,8 @@ public final class Constants {
 
     public static final String QPROV_TYPE_QPU_SIMULATOR = "isSimulator";
 
+    public static final String QPROV_TYPE_CONDITIONAL = "isConditional";
+
     public static final String QPROV_TYPE_QUBIT_NAME = "qubitName";
 
     public static final String QPROV_TYPE_QUBIT_CONNECTED_QUBITS = "connectedQubits";
